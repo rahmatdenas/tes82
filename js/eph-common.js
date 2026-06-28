@@ -80,7 +80,6 @@ function setupLandingForm() {
     window.location.hash = '';
     
     // Langsung buka Daftar, jangan buka layar Loading lama!
-    displayPanelContent('index'); 
     loadPrimaryData();
   });
 }
@@ -380,51 +379,80 @@ function displayRecordDetails(qid) {
 function generateFigure(filename, title = "Situs", classNames = []) {
   if (filename) {
     let uniqueId = 'caption-' + Math.random().toString(36).substr(2, 9);
-    loadJsonp(
-      COMMONS_API_URL,
-      {
-        action : 'query',
-        format : 'json',
-        prop   : 'imageinfo',
-        iiprop : 'extmetadata',
-        titles : 'File:' + filename,
-      },
-      function(data) {
-        let metadata = Object.values(data.query.pages)[0].imageinfo[0].extmetadata;
-        let artistHtml = '';
-        if (metadata.Artist) {
-            artistHtml = metadata.Artist.value.trim();
-            artistHtml = artistHtml.replace(/<(?!\/?a ?)[^>]+>/g, '');
-            artistHtml = artistHtml.replace(/Unknown authorUnknown author/gi, 'Tak diketahui');
-            artistHtml = artistHtml.replace(/UnknownUnknown/gi, 'Tak diketahui');
-            if (artistHtml.search('href="//') >= 0) {
-              artistHtml = artistHtml.replace(/href="(?:https?:)?\/\//g, 'href="https://');
-            }
-            artistHtml = artistHtml.replace(/<a /gi, '<a target="_blank" ');
-        }
-        let licenseHtml = '';
-        if (metadata.AttributionRequired && metadata.AttributionRequired.value === 'true') {
-          licenseHtml = metadata.LicenseShortName.value.replace(/ /g, ' ');
-          licenseHtml = licenseHtml.replace(/-/g, '‑');
-          licenseHtml = `[${licenseHtml}]`;
-          if (metadata.LicenseUrl) {
-            licenseHtml = `<a href="${metadata.LicenseUrl.value}" target="_blank">${licenseHtml}</a>`;
+    
+    // Siapkan Parameter URL (Tambahkan origin=*)
+    let url = new URL(COMMONS_API_URL);
+    let params = {
+      action: 'query',
+      format: 'json',
+      prop: 'imageinfo',
+      iiprop: 'extmetadata',
+      titles: 'File:' + filename,
+      origin: '*' // Kunci penting untuk Fetch API ke Wikipedia
+    };
+    Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+
+    // Eksekusi Fetch API
+    fetch(url)
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+      })
+      .then(data => {
+        let pages = data.query.pages;
+        let page = Object.values(pages)[0];
+        
+        // Mencegah error jika gambar di Commons sudah dihapus/hilang
+        if (page.imageinfo && page.imageinfo[0].extmetadata) {
+          let metadata = page.imageinfo[0].extmetadata;
+          
+          let artistHtml = '';
+          if (metadata.Artist) {
+              artistHtml = metadata.Artist.value.trim();
+              artistHtml = artistHtml.replace(/<(?!\/?a ?)[^>]+>/g, '');
+              artistHtml = artistHtml.replace(/Unknown authorUnknown author/gi, 'Tak diketahui');
+              artistHtml = artistHtml.replace(/UnknownUnknown/gi, 'Tak diketahui');
+              if (artistHtml.search('href="//') >= 0) {
+                artistHtml = artistHtml.replace(/href="(?:https?:)?\/\//g, 'href="https://');
+              }
+              artistHtml = artistHtml.replace(/<a /gi, '<a target="_blank" ');
           }
-          licenseHtml = ' ' + licenseHtml;
+          
+          let licenseHtml = '';
+          if (metadata.AttributionRequired && metadata.AttributionRequired.value === 'true') {
+            licenseHtml = metadata.LicenseShortName.value.replace(/ /g, ' ');
+            licenseHtml = licenseHtml.replace(/-/g, '‑');
+            licenseHtml = `[${licenseHtml}]`;
+            if (metadata.LicenseUrl) {
+              licenseHtml = `<a href="${metadata.LicenseUrl.value}" target="_blank">${licenseHtml}</a>`;
+            }
+            licenseHtml = ' ' + licenseHtml;
+          }
+          
+          let targetCaption = document.getElementById(uniqueId);
+          if (targetCaption) {
+              targetCaption.innerHTML = artistHtml + licenseHtml;
+          }
+        } else {
+          // Jika metadata kosong
+          let targetCaption = document.getElementById(uniqueId);
+          if (targetCaption) targetCaption.innerHTML = 'Data lisensi tidak tersedia.';
         }
+      })
+      .catch(error => {
+        console.error('Gagal memuat metadata gambar:', error);
         let targetCaption = document.getElementById(uniqueId);
-        if (targetCaption) {
-            targetCaption.innerHTML = artistHtml + licenseHtml;
-        }
-      }
-    );
+        if (targetCaption) targetCaption.innerHTML = 'Data gagal dimuat.';
+      });
+
+    // Output HTML tetap sama seperti sebelumnya
     let encodedFilename = encodeURIComponent(filename);
     return (
       `<figure class="${classNames.join(' ')}">` +
         `<a href="${COMMONS_WIKI_URL_PREF}File:${encodedFilename}" target="_blank">` +
           `<img class="loading" src="${COMMONS_WIKI_URL_PREF}Special:FilePath/${encodedFilename}?width=500" alt="" onload="this.className=''">` +
         '</a>' +
-        `<figcaption id="${uniqueId}">(Loading…)</figcaption>` +
+        `<figcaption id="${uniqueId}">(Memuat…)</figcaption>` +
       '</figure>'
     );
   } else {
