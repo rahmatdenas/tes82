@@ -1044,7 +1044,7 @@ let isBersejarah = false;
     prefixLokasi = 'Terletak di';
     prefixTahun = 'Era/periode';
   } else if (['Prasasti', 'Artefak'].includes(currentNamaKlaster)) {
-    prefixLokasi = 'Lokasi';
+    prefixLokasi = 'Lokasi sekarang';
     prefixTahun = 'Tarikh';
   }
   // 2. Kategori Alam (Mematikan Tahun & Modifikasi Terletak)
