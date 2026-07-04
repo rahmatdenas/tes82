@@ -211,16 +211,20 @@ L.control.locate({
   powered.addTo(Map);
 
 Cluster = new L.markerClusterGroup({
-    maxClusterRadius: function(z) {
-      if (z <=  15) return 50;
-      if (z === 16) return 40;
-      if (z === 17) return 30;
-      if (z === 18) return 20;
-      if (z >=  19) return 10;
+    maxClusterRadius: function(zoom) {
+      let z = Math.round(zoom);       
+      if (z <= 15) return 50;
+      if (z === 16) return 35;
+      if (z === 17) return 20;
+      if (z === 18) return 10; // Permintaan baru Anda: di zoom 18 radiusnya 10
+      
+      // 2. Jaring pengaman mutlak (untuk zoom 19, 20, dan seterusnya)
+      // Permintaan baru Anda: radius 0 (hanya bergabung jika koordinat sama persis)
+      return 0; 
     },
     // MATIKAN KENDALI OTOMATIS BAWAAN
     zoomToBoundsOnClick: false, 
-    spiderfyOnMaxZoom: false    
+    spiderfyOnMaxZoom: false  
   }).addTo(Map);
 
   // KENDALIKAN MANUAL KLIK PADA KLASTER
