@@ -28,6 +28,7 @@ var PrimaryDataIsLoaded   = false;
 var isAppInitialLoad      = true; // Tambahkan ini!
 var isFetching            = false; // Menandai apakah satpam sedang mencari data
 var activeXhrs            = [];
+var currentActiveShapeLayer = null;
 
 window.addEventListener('load', init);
 
@@ -83,11 +84,12 @@ function setupLandingForm() {
 function resetApp() {
   // 1. Bunuh Koneksi yang Sedang Berjalan
 if (activeXhrs.length > 0) {
-    activeXhrs.forEach(xhr => {
-      xhr.isAbortedManually = true; // TANDAI: Ini pembatalan sengaja!
+    let xhrToAbort = [...activeXhrs]; 
+    activeXhrs = []; 
+    xhrToAbort.forEach(xhr => {
+      xhr.isAbortedManually = true; 
       xhr.abort();
     });
-    activeXhrs = []; 
   }
 
   let brandingDesc = document.getElementById('branding-desc');
@@ -132,10 +134,11 @@ if (activeXhrs.length > 0) {
   }
   
   // C. Bersihkan Kotak Pencarian dan Angka Hasil
-  let searchInput = document.getElementById('search-input');
+let searchInput = document.getElementById('search-input');
   if (searchInput) {
     searchInput.value = '';
-    searchInput.placeholder = 'Belum ada hasil...'; // Teks netral
+    searchInput.placeholder = 'Belum ada hasil...';
+    searchInput.dispatchEvent(new Event('input', { bubbles: true })); // Pelatuk reset real-time
   }
 
   // D. Matikan semua tombol filter (Gambar/Artikel), dan nyalakan tombol "Semua Hasil"
@@ -524,8 +527,15 @@ function displayRecordDetails(qid) {
   document.title = `${record.indexTitle} – ${BASE_TITLE}`;
   
   if (PrimaryDataIsLoaded) {
+    // KUNCI PERBAIKAN: Bersihkan poligon lama, pasang yang baru
+    if (currentActiveShapeLayer) Map.removeLayer(currentActiveShapeLayer);
+    if (record.shapeLayer) {
+      record.shapeLayer.addTo(Map);
+      currentActiveShapeLayer = record.shapeLayer;
+    }
+
     if (!record.panelElem) {
-      generateRecordDetails(qid); 
+      generateRecordDetails(qid);
       
       if (typeof populateImportantEventsData === 'function') {
         populateImportantEventsData(qid);
@@ -537,6 +547,17 @@ function displayRecordDetails(qid) {
     
     let detailsElem = document.getElementById('details');
     detailsElem.replaceChild(record.panelElem, detailsElem.childNodes[0]);
+
+    let stuckImages = record.panelElem.querySelectorAll('img.loading');
+    stuckImages.forEach(img => {
+      // Jika gambar belum tuntas dimuat ATAU gagal dimuat (lebar aslinya 0)
+      if (!img.complete || img.naturalWidth === 0) {
+        let currentSrc = img.src;
+        img.src = ''; // Kosongkan src sejenak
+        img.src = currentSrc; // Isi kembali untuk memaksa browser mengulang request HTTP
+      }
+    });
+    
     displayPanelContent('details');
   }
   else {
@@ -646,13 +667,6 @@ function parseDate(result, keyName) {
   }
 }
 
-// Fungsi pembantu untuk mendapatkan QID dari Objek Record
-function getQidByRecordObj(recordObj) {
-  for (let qid in Records) {
-    if (Records[qid] === recordObj) return qid;
-  }
-  return null;
-}
 
 // Fungsi utama pengendali Navigasi
 function updateNavigationUI(fragment) {
@@ -664,28 +678,44 @@ function updateNavigationUI(fragment) {
   // Deteksi apakah yang sedang dibuka adalah Detail Butir yang valid
   let isDetailView = (fragment !== '' && fragment !== 'hasil' && fragment !== 'about' && PrimaryDataIsLoaded && (fragment in Records));
 
-  if (isDetailView) {
-    // NYALAKAN MODE DETAIL (<< Hasil >>)
+if (isDetailView) {
     navStandar.style.display = 'none';
     navDetail.style.display = 'flex';
     
     let btnPrev = document.getElementById('btn-prev');
     let btnNext = document.getElementById('btn-next');
     
-    // Cari indeks butir saat ini yang sesuai dengan urutan filter (applyIntersectionFilter)
     let currentIndex = currentFilteredRecords.findIndex(r => r === Records[fragment]);
     
-    // Konfigurasi Tombol '<<' (Sebelumnya)
+    // KUNCI PERBAIKAN: Jika dipanggil dari URL tapi tersembunyi oleh filter, reset filternya!
+    if (currentIndex === -1) {
+       let btnAll = document.getElementById('btn-all');
+       if (btnAll) btnAll.click();
+       currentIndex = currentFilteredRecords.findIndex(r => r === Records[fragment]);
+    }
+    
+    // Konfigurasi Tombol '<<' (Sebelumnya) - MENGGUNAKAN .id LANGSUNG
     if (currentIndex > 0) {
-      let prevQid = getQidByRecordObj(currentFilteredRecords[currentIndex - 1]);
+      let prevQid = currentFilteredRecords[currentIndex - 1].id;
       btnPrev.href = '#' + prevQid;
       btnPrev.style.opacity = '1';
       btnPrev.style.pointerEvents = 'auto';
     } else {
-      // Mati jika sudah di urutan paling awal atau tidak ketemu
       btnPrev.removeAttribute('href');
       btnPrev.style.opacity = '0.3';
       btnPrev.style.pointerEvents = 'none';
+    }
+
+    // Konfigurasi Tombol '>>' (Selanjutnya) - MENGGUNAKAN .id LANGSUNG
+    if (currentIndex !== -1 && currentIndex < currentFilteredRecords.length - 1) {
+      let nextQid = currentFilteredRecords[currentIndex + 1].id;
+      btnNext.href = '#' + nextQid;
+      btnNext.style.opacity = '1';
+      btnNext.style.pointerEvents = 'auto';
+    } else {
+      btnNext.removeAttribute('href');
+      btnNext.style.opacity = '0.3';
+      btnNext.style.pointerEvents = 'none';
     }
 
     // Konfigurasi Tombol '>>' (Selanjutnya)
