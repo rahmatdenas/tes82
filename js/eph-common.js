@@ -394,13 +394,13 @@ async function queryWdqsPaginated(queryTemplate, processEachResult, postprocessC
     if (kombinasiUnik < chunkSize) {
        // Loop akan berhenti, ubah pesan ke status final
        if (progressText) {
-         progressText.textContent = `Selesai menarik total ${totalDataTerkumpul} data. Sedang memproses tampilan...`;
+         progressText.textContent = `Total ${totalDataTerkumpul} data ditarik. Sedang memproses tampilan...`;
        }
        break; 
     } else {
        // Masih ada halaman berikutnya
        if (progressText) {
-         progressText.textContent = `Selesai mendapatkan ${totalDataTerkumpul} data. Masih ada ribuan data lagi...`;
+         progressText.textContent = `Selesai menarik ${totalDataTerkumpul} data. Masih menarik ribuan data lagi...`;
        }
     }
 
