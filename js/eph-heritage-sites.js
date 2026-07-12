@@ -824,15 +824,16 @@ function populateMapAndIndex() {
       // =======================================================
       // +++ LOGIKA KLIK KEDUA (KHUSUS MOBILE) +++
       // =======================================================
-      mapMarker.on('click', function() {
-        // Cek apakah hash URL saat ini sama persis dengan Q-ID marker.
-        // Jika sama, ini adalah klik kedua di area yang sama.
-        if (window.location.hash === '#' + qid) {
+mapMarker.on('click', function() {
+        // KUNCI PERBAIKAN: Gunakan lastValidHash, BUKAN window.location.hash.
+        // lastValidHash menyimpan rekam jejak Q-ID 'sebelum' klik ini diproses.
+        if (lastValidHash === qid) {
           
           // Tarik panel mobile ke atas
           if (typeof window.setMobilePanelExpanded === 'function') {
             window.setMobilePanelExpanded(true);
           }
+          
         }
       });
       // =======================================================
