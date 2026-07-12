@@ -811,7 +811,10 @@ function populateMapAndIndex() {
         { icon: L.ExtraMarkers.icon({ icon: '', markerColor : 'orange-dark' }) },
       );
       record.mapMarker = mapMarker;
-      mapMarker.bindPopup(record.title, { closeButton: false });
+ mapMarker.bindPopup(record.title, { 
+  closeButton: false,
+  maxWidth: 240  // Temboknya digeser menjadi 400 piksel
+});
       let popup = mapMarker.getPopup();
       popup._qid = qid;
       record.popup = popup;
