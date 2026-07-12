@@ -1111,7 +1111,7 @@ designationsHtml += '<ul class="designations">';
 
   let spesifik = record.lokasiSpesifik; 
   // Bersihkan nilai anomali dari Wikidata
-  if (spesifik === 'Tidak dalam Provinsi' || spesifik === 'Q_UNKNOWN') spesifik = null;
+if (spesifik === 'Tidak dalam Provinsi') spesifik = null;
 
   let namaLokasi = '';
 
