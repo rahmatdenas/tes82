@@ -886,31 +886,32 @@ mapMarker.bindPopup(record.title, {
       });
 
       // =======================================================
-      // +++ LOGIKA KLIK KEDUA: SENSOR SENTUH KHUSUS MOBILE +++
+      // +++ RETAS REFLEKS BAWAAN LEAFLET (ANTI-BERKEDIP) +++
       // =======================================================
-      
-      // 1. Rekam status TEPAT saat jari menyentuh marker (touchstart untuk HP, mousedown untuk PC)
+      // Kita timpa fungsi toggle bawaannya. Sekarang marker ini 
+      // HANYA akan membuka popup, dan menolak untuk menutupnya!
+      mapMarker.togglePopup = function() {
+        if (!this.isPopupOpen()) {
+          this.openPopup();
+        }
+      };
+
+      // 1. Rekam status TEPAT saat jari menyentuh marker
       mapMarker.on('mousedown touchstart', function() {
         this._bukaSaatDisentuh = this.isPopupOpen();
       });
 
       // 2. Eksekusi pemanggilan panel saat klik / ketukan selesai
       mapMarker.on('click', function() {
-        
         if (this._bukaSaatDisentuh) {
           // --- INI PASTI KLIK KEDUA (Popup sudah terbuka) ---
-          
           if (typeof window.setMobilePanelExpanded === 'function') {
-            // Panggil fungsi asli Anda: expand = true, animate = true
             window.setMobilePanelExpanded(true, true);
           }
           
-          // Tahan popup agar tidak tertutup otomatis oleh Leaflet
-          setTimeout(() => { 
-            this.openPopup(); 
-          }, 10);
+          // KITA TIDAK PERLU LAGI SETTIMEOUT DI SINI!
+          // Popup akan diam dengan tenang tanpa berkedip sedikitpun.
         }
-        
       });
       // =======================================================
           let popup = mapMarker.getPopup();
